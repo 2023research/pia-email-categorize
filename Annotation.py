@@ -72,12 +72,7 @@ def run():
     #     page_title="Hello",
     #     page_icon="👋",
     # )    
-    text_email,id_email = read_email()
-    print (id_email)    
-    st.header('Text to analyze', divider='red')
-    st.markdown(text_email)
-    st.header(body='',divider='red' )
-    st.header('End')
+    
     
 
     is_maintenance = st.sidebar.selectbox(
@@ -158,6 +153,12 @@ def run():
         # st.markdown(text_email)
         # st.header(body='',divider='red' )
         # st.header('End')
+    text_email,id_email = read_email()
+    print (id_email)    
+    st.header('Text to analyze', divider='red')
+    st.markdown(text_email)
+    st.header(body='',divider='red' )
+    st.header('End')
     
     # if not submit and is_maintenance is not None:
     st.sidebar.write("Please do not forget to submit your results before annotating next one",submit,next_text,submit_re)
