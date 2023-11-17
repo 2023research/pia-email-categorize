@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# import inspect
-# import textwrap
+from typing import Any
 
-# import streamlit as st
+import numpy as np
 
+import streamlit as st
+st.write("## Welcome to PIA email categorization!")
+st.markdown(
+    """
+    Please follow the below steps:
+    1. read the text body
+    2. answer the questions in all selectboxs on the left sidebar. 
+        - if a selectbox does not have option matching the text, please email the new option to shuming.liang@uts.eud.au. We will add the new option to that selectbox.
+    3. after completed all answers, please click the submit button to save your answer.
 
-# def show_code(demo):
-#     """Showing the code of the demo."""
-#     show_code = st.sidebar.checkbox("Show code", True)
-#     if show_code:
-#         # Showing the code of the demo.
-#         st.markdown("## Code")
-#         sourcelines, _ = inspect.getsourcelines(demo)
-#         st.code(textwrap.dedent("".join(sourcelines[1:])))
+"""
+)
