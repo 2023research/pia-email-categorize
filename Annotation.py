@@ -35,20 +35,28 @@ issue_maintenance_type = {
     'water':['...'],
     'wall crack':['...']
 }
-
-def read_email():
-    files = [f[:-4] for f in os.listdir(path_results)]
-    def get_email_data():
-        df = pd.read_csv('./data/b14.csv')
-        return df
+def get_email_data():
+    df = pd.read_csv('./data/b14.csv')
+    return df
+def read_email(sample=False):
+    files = [f[:-4] for f in os.listdir(path_results)]    
     try:
-        print (files)
+        # print (files)
         df = get_email_data()
         df = df[['Body','ID']]
         df_bool = df['ID'].apply(lambda x: x not in files)
         df = df[df_bool]
-        # print (df.columns)
-        df = df.sample()
+        if df.shape[0]<10:
+            st.markdown(
+            """
+            ## **only less than 10 email samples need to be annotated, please inform UTS team to unpdate dataset by sending email: shuming.liang@uts.edu.au  thanks very much**
+        """
+        )
+        if sample:
+            df = df.sample()           
+        else:
+            df = df.iloc[0:2]
+            
         return df.iloc[0]['Body'],df.iloc[0]['ID']
         
     except URLError as e:
@@ -59,23 +67,13 @@ def read_email():
         """
             % e.reason
         )
-def write_result():
-    a=0
-
-
-
 def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
+    # st.set_page_config(
+    #     page_title="Hello",
+    #     page_icon="👋",
+    # )    
     
-    text_email,id_email = read_email()
-    print (id_email)
-    st.header('Text to analyze', divider='red')
-    st.markdown(text_email)
-    st.header(body='',divider='red' )
-    st.header('End')
+    
 
     is_maintenance = st.sidebar.selectbox(
     "Is this text related to the property maintenance?",
@@ -84,9 +82,9 @@ def run():
     placeholder="Select yes or no...",
     disabled=False
     )   
-    print(is_maintenance)
+    # print(is_maintenance)
     disable = False if is_maintenance=='yes'else True
-    print(int(disable))
+    # print(int(disable))
 
     area = st.sidebar.selectbox(
     "which area needs maintenance?",
@@ -137,12 +135,24 @@ def run():
         next_text = st.button(
         label="annotate next one",
         )
+    if next_text:
+    #     # st.rerun()
+        text_email,id_email = read_email(sample=True)
+        print (id_email)
+    else:
+        text_email,id_email = read_email()
+        print (id_email)
+    
+    st.header('Text to analyze', divider='red')
+    st.markdown(text_email)
+    st.header(body='',divider='red' )
+    st.header('End')
+
     if submit:
         df = pd.DataFrame([[id_email,is_maintenance,area,location,issue,maintenance_type]],columns=['id_email','is_maintenance','area','location','issue','maintenance_type'])
         print (df)
         df.to_csv(os.path.join(path_results,id_email+'.csv'),index=False)
-    if next_text:
-        st.rerun()
+    
     # if not submit and is_maintenance is not None:
     st.sidebar.write("Please do not forget to submit your results before annotating next one",submit,next_text,submit_re)
     
