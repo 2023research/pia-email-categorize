@@ -146,8 +146,9 @@ def run():
         df = pd.DataFrame([[id_email,is_maintenance,area,location,issue,maintenance_type]],columns=['id_email','is_maintenance','area','location','issue','maintenance_type'])
         print (df)
         df.to_csv(os.path.join(path_results,id_email+'.csv'),index=False)
+        st.rerun()
 
-        text_email,id_email = read_email()
+        # text_email,id_email = read_email()
         # print (id_email)    
         # st.header('Text to analyze', divider='red')
         # st.markdown(text_email)
