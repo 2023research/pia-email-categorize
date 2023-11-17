@@ -18,7 +18,7 @@ import streamlit as st
 from streamlit.logger import get_logger
 
 LOGGER = get_logger(__name__)
-path_results = '/workspaces/pia-email-categorize/results'
+path_results = './results'
 
 location_issue={
     'ceiling':['crack','paint'],
@@ -39,7 +39,7 @@ issue_maintenance_type = {
 def read_email():
     files = [f[:-4] for f in os.listdir(path_results)]
     def get_email_data():
-        df = pd.read_csv('/workspaces/pia-email-categorize/data/b14.csv')
+        df = pd.read_csv('./data/b14.csv')
         return df
     try:
         print (files)
