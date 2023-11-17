@@ -52,10 +52,10 @@ def read_email(sample=False):
             ## **only less than 10 email samples need to be annotated, please inform UTS team to unpdate dataset by sending email: shuming.liang@uts.edu.au  thanks very much**
         """
         )
-        if sample:
-            df = df.sample()           
-        else:
-            df = df.iloc[0:2]
+        # if sample:
+        #     df = df.sample()           
+        # else:
+        #     df = df.iloc[0:2]
             
         return df.iloc[0]['Body'],df.iloc[0]['ID']
         
@@ -72,7 +72,12 @@ def run():
     #     page_title="Hello",
     #     page_icon="👋",
     # )    
-    
+    text_email,id_email = read_email()
+    print (id_email)    
+    st.header('Text to analyze', divider='red')
+    st.markdown(text_email)
+    st.header(body='',divider='red' )
+    st.header('End')
     
 
     is_maintenance = st.sidebar.selectbox(
@@ -135,18 +140,12 @@ def run():
         next_text = st.button(
         label="annotate next one",
         )
-    if next_text:
-    #     # st.rerun()
-        text_email,id_email = read_email(sample=True)
-        print (id_email)
-    else:
-        text_email,id_email = read_email()
-        print (id_email)
+    # if next_text:
+    # #     # st.rerun()
+    #     text_email,id_email = read_email(sample=True)
+    #     print (id_email)
+    # else:
     
-    st.header('Text to analyze', divider='red')
-    st.markdown(text_email)
-    st.header(body='',divider='red' )
-    st.header('End')
 
     if submit:
         df = pd.DataFrame([[id_email,is_maintenance,area,location,issue,maintenance_type]],columns=['id_email','is_maintenance','area','location','issue','maintenance_type'])
