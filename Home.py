@@ -110,177 +110,161 @@ def read_email(sample=False):
             % e.reason
         )
 
-def run():
+# def run():
+
+############################################################################################
+#authorization
+# usernames = ['john','james','oliver','david','emma','alex']
+# passwords = ['8963','2836', '4936','3232','6323','8768']
+
+# hashed_passwords = stauth.Hasher(['8963','2836', '4936','3232','6323','8768']).generate()
+# print (hashed_passwords)
+
+
+with open('./login.yaml') as file:
+    config = yaml.load(file, Loader=SafeLoader)
+
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days'],
+    config['preauthorized']
+)
+name, authenticator_status, username = authenticator.login('Login','main')
+if authenticator_status==False:
+    st.error('username/password is incorrect')
+elif authenticator_status==None:
+    st.warning("please enter your username and password")
+else:  
+    # st.set_page_config(
+    #     page_title="Hello",
+    #     page_icon="👋",
+    # )    
+    col1, col2 = st.sidebar.columns([1, 1,])
+    with col1:
+        st.subheader(f'Welcome {name}')
+    with col2:
+        authenticator.logout('Logout')
+    # st.sidebar.divider()
+#########body######################################################################################
+    # body
     
-    ############################################################################################
-    #authorization
-    # usernames = ['john','james','oliver','david','emma','alex']
-    # passwords = ['8963','2836', '4936','3232','6323','8768']
-
-    # hashed_passwords = stauth.Hasher(['8963','2836', '4936','3232','6323','8768']).generate()
-    # print (hashed_passwords)
+    
 
 
-    with open('./login.yaml') as file:
-        config = yaml.load(file, Loader=SafeLoader)
+#####load email #########################
+    text_email,id_email = read_email()
+    print (id_email)    
+    st.header('Text to analyze', divider='red')
+    st.markdown(text_email)
+    st.header(body='',divider='red' )
+    st.header('End')
 
-    authenticator = stauth.Authenticate(
-        config['credentials'],
-        config['cookie']['name'],
-        config['cookie']['key'],
-        config['cookie']['expiry_days'],
-        config['preauthorized']
-    )
-    name, authenticator_status, username = authenticator.login('Login','main')
-    if authenticator_status==False:
-        st.error('username/password is incorrect')
-    elif authenticator_status==None:
-        st.warning("please enter your username and password")
-    else:  
-        # st.set_page_config(
-        #     page_title="Hello",
-        #     page_icon="👋",
-        # )    
-        col1, col2 = st.sidebar.columns([1, 1,])
-        with col1:
-           st.subheader(f'Welcome {name}')
-        with col2:
-            authenticator.logout('Logout')
-        # st.sidebar.divider()
-    #########body######################################################################################
-        # body
-        
-        
+#### add issue ###############################   
+    def add_issue(issue_str=None):
+        if issue_str !=None and issue_str not in st.session_state.issue_list:
+            st.session_state.issue_list.append(issue_str)
 
-
-    #####load email #########################
-        text_email,id_email = read_email()
-        print (id_email)    
-        st.header('Text to analyze', divider='red')
-        st.markdown(text_email)
-        st.header(body='',divider='red' )
-        st.header('End')
-
-    #### add issue ###############################   
-        def add_issue(issue_str):
-            if issue_str not in st.session_state.issue_list:
-                st.session_state.issue_list.append(issue_str)
-
-        def delete_field(index):
-            del st.session_state.issue_list[index]
-            del st.session_state.deletes[index]
-
-        if "issue_list" not in st.session_state:
-            st.session_state.issue_list = []
-            st.session_state.deletes = []
-        
-        
-        st.sidebar.divider()
-        with st.sidebar:#.form("my_form"):
-            # issue selction
-            is_maintenance = st.sidebar.selectbox(
-            "Is it related to the property maintenance?",
-            ("no","yes"),
-            # index=None,
-            placeholder="Select yes or no...",
-            disabled=False,key='is_maintenance'
-            )   
-            # print(is_maintenance)
-            disable = False if is_maintenance=='yes'else True
-            # print(int(disable))
-
-            def select_issues(label='0',opt=['0','1'],phld="",disable=disable,key=['0','1']):
-                opt.append('add a new option')
-                c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
-                with c1:
-                    item = st.selectbox(label=label, options=opt, index=0, placeholder=phld, disabled=disable, key=key[0])           
-                with c2:                
-                    new_option = st.text_input(label="Input your new option",label_visibility='visible', placeholder='Input your new option',
-                                               disabled = (item!="add a new option"),key=key[1])  
-                    item = new_option if item=="add a new option" else item 
-                return item
-            area = select_issues("which room or area has issue?",['unclear',"bedroom", "living room"],disable=disable,key=['area','area_new'])
-            location = select_issues("what has issue?",['unclear',"bedroom", "living room"],disable=disable,key=['location','location_new'])
-            issue = select_issues("which issue?",location_issue[location],disable=disable,key=['issue','issue_new'])
-            maintenance_type = select_issues("what maintenance requied?",issue_maintenance_type[issue],disable=disable,key=['maintenance_type','type_new'])
-
-            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
-            # with c1:
-            #     area = st.selectbox("which room or area has issue?", ('unclear',"bedroom", "living room","add a new option"),
-            #     placeholder="Select area", disabled=disable,key='area') # index=None            
-            # with c2:                
-            #     new_option = st.text_input(label="Input your new option",label_visibility='visible', placeholder='input your new option',disabled = (area!="add a new option"),key='area_new')  
-            #     area = new_option if area=="add a new option" else area 
-
-            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
-            # with c1:
-            #     location = st.selectbox("what has issue?",('unclear',"ceiling", "pool"), 
-            #     placeholder="Select what", disabled=disable,key='location')
-            # with c2:
-            #     new_option = st.text_input(label="input your new option",label_visibility='visible', placeholder='input your new option',disabled = (location!="add a new option"),key='location_new')
-            #     area = new_option if area=="add a new option" else area
-
-            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
-            # with c1:
-            #     issue = st.selectbox( "which issue?", options=location_issue[location], placeholder="Select issue", disabled=disable,key='issue')
-            # with c2:
-            #     new_option = st.text_input(label="input your new option",label_visibility='visible', placeholder='input your new option',disabled = (issue!="add a new option"),key='issue_new')
-            #     area = new_option if area=="add a new option" else area
-
-            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
-            # with c1:
-            #     maintenance_type = st.selectbox( "what maintenance requied?", options=issue_maintenance_type[issue], 
-            #     placeholder="Select maintenance", disabled=disable,key='maintenance_type')
-            # with c2:
-            #     new_option = st.text_input(label="input your new option",label_visibility='visible', placeholder='input your new option',disabled = (maintenance_type!="add a new option"), key='type_new')
-            #     area = new_option if area=="add a new option" else area
-
-
-    ######## add issue description ###########################
-            issue_str = is_maintenance+'/'+area+'/'+location+'/'+issue+'/'+maintenance_type
-
-            submitted = st.button("➕ Add issue", on_click=add_issue, args=(issue_str,),disabled=disable)  
-
-    ######## showing issues###############################################
-        st.sidebar.divider()
-        for i in range(len(st.session_state.issue_list)):
-            c1, c2 = st.sidebar.columns([0.3,0.7], gap='small')    
-            if is_maintenance=='yes':        
-                with c2:
-                    st.write(st.session_state.issue_list[i])
-                with c1:
-                    st.session_state.deletes.append(st.button("❌", key=f"delete{i}", on_click=delete_field, args=(i,)))
-        # st.write(issue_list)
-        print ('st.session_state.issue_list',st.session_state.issue_list)
-
-    ###### submit button##################################################################
-         
-        def reset():
-            st.session_state.is_maintenance = 'no'
+    def delete_field(index):
+        del st.session_state.issue_list[index]
+        del st.session_state.deletes[index]
+    def reset_no():
+        if st.session_state.is_maintenance == 'no':
             st.session_state.area = 'unclear'
             st.session_state.location = 'unclear'
             st.session_state.issue = 'unclear'
-            st.session_state.maintenance_type = 'unclear'     
-            st.session_state.issue_list = []
-            st.session_state.deletes = []
+            st.session_state.maintenance_type = 'unclear'
+            st.session_state.subtype = None   
 
-        st.sidebar.divider()
-        submit = st.sidebar.button(label="Final submit",on_click=reset)    
-       
-        if submit:            
-            df = pd.DataFrame([[id_email,is_maintenance,area,location,issue,maintenance_type]],columns=['id_email','is_maintenance','area','location','issue','maintenance_type'])
-            print (df)
-            df.to_csv(os.path.join(path_results,id_email+'.csv'),index=False)
-            st.rerun()
+    if "issue_list" not in st.session_state:
+        st.session_state.issue_list = []
+        st.session_state.deletes = []
+    
+    
+    st.sidebar.divider()
+    is_maintenance = st.sidebar.selectbox( "Is it related to the property maintenance?", ("no","yes"), 
+                                            placeholder="Select yes or no...", key='is_maintenance',on_change =reset_no)   
+    disable = False if is_maintenance=='yes'else True
 
-        # if not submit and is_maintenance is not None:
-        st.sidebar.write("Please do not forget to submit your results before annotating next one",submit)
+    def select_issues(label='0',opt=['0','1'],idx=0,phld="",disable=disable,key=['0','1']):
+        opt.append('add a new option')
+        c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
+        with c1:
+            item = st.selectbox(label=label, options=opt, index=idx, placeholder=phld, disabled=disable, key=key[0])           
+        with c2:                
+            disable_newopt = (item!="add a new option") or (disable)
+            new_option = st.text_input(label="Input your new option",label_visibility='visible', placeholder='Input your new option',
+                                        disabled = disable_newopt,key=key[1])  
+            item = new_option if item=="add a new option" else item 
+        return item 
+    
+    area = select_issues("which room or area has issue?",['unclear',"bedroom", "living room"],disable=disable,key=['area','area_new'])
+    location = select_issues("what has issue?",['unclear',"ceiling", "pool"],disable=disable,key=['location','location_new'])
+    issue = select_issues("which issue?",location_issue[location],disable=disable,key=['issue','issue_new'])
+    maintenance_type = select_issues("what maintenance requied?",issue_maintenance_type[issue],disable=disable,key=['maintenance_type','type_new'])
+    subtype = select_issues("more maintenance requied?",issue_maintenance_type[issue],idx=None,disable=disable,key=['subtype','subtype_new'])
+    print ('st.session_state.area',st.session_state.area)
+
+    
+
+######## add issue description ###########################
+    issue_str=""
+    for ele in [is_maintenance,area,location,issue,maintenance_type,subtype]:        
+        issue_str=issue_str+ele+'/' if ele !=None else issue_str+'None/'
+    print (issue_str)
+    bool_addissue = disable
+    if  "add a new option" in [st.session_state.area, st.session_state.location, st.session_state.issue,
+                               st.session_state.maintenance_type, st.session_state.subtype]:
+        bool_addissue = True
+    bool_addopt = (not bool_addissue) or (is_maintenance=='no') 
+    c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
+    with c1:
+        add_issue_res = st.button("➕ Add issue", on_click=add_issue, args=(issue_str,),disabled=bool_addissue, key='add_issue')  
+    with c2:
+        add_new_options_res = st.button("➕ Add new option", on_click=add_issue, disabled=bool_addopt, key='add_new_options')
+
+######## showing issues###############################################
+    st.sidebar.divider()
+    for i in range(len(st.session_state.issue_list)):
+        c1, c2 = st.sidebar.columns([0.3,0.7], gap='small')    
+        if is_maintenance=='yes':        
+            with c2:
+                st.write(st.session_state.issue_list[i])
+            with c1:
+                st.session_state.deletes.append(st.button("❌", key=f"delete{i}", on_click=delete_field, args=(i,)))
+    # st.write(issue_list)
+    print ('st.session_state.issue_list',st.session_state.issue_list)
+
+###### submit button##################################################################
+        
+    
+    def reset():
+        st.session_state.is_maintenance = 'no'
+        st.session_state.area = 'unclear'
+        st.session_state.location = 'unclear'
+        st.session_state.issue = 'unclear'
+        st.session_state.maintenance_type = 'unclear'     
+        st.session_state.issue_list = []
+        st.session_state.deletes = []
+
+    st.sidebar.divider()
+    submit = st.sidebar.button(label="Final submit",on_click=reset)    
+    
+    if submit:            
+        df = pd.DataFrame([[id_email,is_maintenance,area,location,issue,maintenance_type]],columns=['id_email','is_maintenance','area','location','issue','maintenance_type'])
+        print (df)
+        df.to_csv(os.path.join(path_results,id_email+'.csv'),index=False)
+        st.rerun()
+
+    # if not submit and is_maintenance is not None:
+    st.sidebar.write("Please do not forget to submit your results before annotating next one",submit)
 ##########################################################################################################################################################
 ##########################################################################################################################################################
 
 
-if __name__ == "__main__":
-    run()
+# if __name__ == "__main__":
+#     run()
 
 ############################################################################################################################
 # Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
