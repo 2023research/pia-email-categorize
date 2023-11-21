@@ -4,3 +4,4 @@ pandas
 pydeck
 streamlit
 streamlit-authenticator
+psycopg2

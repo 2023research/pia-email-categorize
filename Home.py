@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from urllib.error import URLError
-import os
+import os, psycopg2
 import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -25,7 +25,37 @@ from yaml.loader import SafeLoader
 #############################################################################################
 LOGGER = get_logger(__name__)
 path_results = './results'
-
+#############################################################################################
+# database
+def connect_db():
+    conn = psycopg2.connect("dbname=pia host=piadb.c4j0rw3vec6q.ap-southeast-2.rds.amazonaws.com user=postgres password=UTS-DSI2020")
+    return conn.cursor()
+# create schema####
+def create_grant_schema(schema):
+    cur = connect_db()
+    print (cur)
+    cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema} AUTHORIZATION postgres ")
+    cur.execute(f"GRANT CREATE, USAGE ON SCHEMA {schema} TO postgres")
+    cur.execute(f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO postgres")
+    cur.execute(f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {schema} TO postgres")
+    cur.execute("COMMIT")
+# create_grant_schema('email')
+## create table###############
+def create_table_issue():
+    sql = """CREATE TABLE IF NOT EXISTS email.issues (
+        area varchar(1450) NOT NULL,
+        location varchar(1450) NOT NULL,
+        issue varchar(1450) NOT NULL,
+        maintype varchar(1450) NOT NULL,
+        subtype varchar(1450) NOT NULL,
+        subsubtype varchar(1450) NOT NULL,
+        subsubsubtype varchar(1450) NOT NULL,
+        note varchar(1450) NOT NULL
+        )"""
+    cur = connect_db()
+    cur.execute(sql)
+    cur.execute("COMMIT")
+# create_table_issue()
 ########################################################################################################
 # body
 location_issue={
@@ -140,7 +170,7 @@ def run():
             del st.session_state.issue_list[index]
             del st.session_state.deletes[index]
 
-        if "issue_size" not in st.session_state:
+        if "issue_list" not in st.session_state:
             st.session_state.issue_list = []
             st.session_state.deletes = []
         
@@ -159,45 +189,60 @@ def run():
             disable = False if is_maintenance=='yes'else True
             # print(int(disable))
 
-            area = st.selectbox(
-            "which area needs maintenance?",
-            ('unclear',"bedroom", "living room"),
-            # index=None,
-            placeholder="Select area",
-            disabled=disable,key='area'
-            )
+            def select_issues(label='0',opt=['0','1'],phld="",disable=disable,key=['0','1']):
+                opt.append('add a new option')
+                c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
+                with c1:
+                    item = st.selectbox(label=label, options=opt, index=0, placeholder=phld, disabled=disable, key=key[0])           
+                with c2:                
+                    new_option = st.text_input(label="Input your new option",label_visibility='visible', placeholder='Input your new option',
+                                               disabled = (item!="add a new option"),key=key[1])  
+                    item = new_option if item=="add a new option" else item 
+                return item
+            area = select_issues("which room or area has issue?",['unclear',"bedroom", "living room"],disable=disable,key=['area','area_new'])
+            location = select_issues("what has issue?",['unclear',"bedroom", "living room"],disable=disable,key=['location','location_new'])
+            issue = select_issues("which issue?",location_issue[location],disable=disable,key=['issue','issue_new'])
+            maintenance_type = select_issues("what maintenance requied?",issue_maintenance_type[issue],disable=disable,key=['maintenance_type','type_new'])
 
-            location = st.selectbox(
-            "which loction has issue?",
-            ('unclear',"ceiling", "pool"),
-            # index=None,
-            placeholder="Select location",
-            disabled=disable,key='location'
-            )
+            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
+            # with c1:
+            #     area = st.selectbox("which room or area has issue?", ('unclear',"bedroom", "living room","add a new option"),
+            #     placeholder="Select area", disabled=disable,key='area') # index=None            
+            # with c2:                
+            #     new_option = st.text_input(label="Input your new option",label_visibility='visible', placeholder='input your new option',disabled = (area!="add a new option"),key='area_new')  
+            #     area = new_option if area=="add a new option" else area 
+
+            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
+            # with c1:
+            #     location = st.selectbox("what has issue?",('unclear',"ceiling", "pool"), 
+            #     placeholder="Select what", disabled=disable,key='location')
+            # with c2:
+            #     new_option = st.text_input(label="input your new option",label_visibility='visible', placeholder='input your new option',disabled = (location!="add a new option"),key='location_new')
+            #     area = new_option if area=="add a new option" else area
+
+            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
+            # with c1:
+            #     issue = st.selectbox( "which issue?", options=location_issue[location], placeholder="Select issue", disabled=disable,key='issue')
+            # with c2:
+            #     new_option = st.text_input(label="input your new option",label_visibility='visible', placeholder='input your new option',disabled = (issue!="add a new option"),key='issue_new')
+            #     area = new_option if area=="add a new option" else area
+
+            # c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
+            # with c1:
+            #     maintenance_type = st.selectbox( "what maintenance requied?", options=issue_maintenance_type[issue], 
+            #     placeholder="Select maintenance", disabled=disable,key='maintenance_type')
+            # with c2:
+            #     new_option = st.text_input(label="input your new option",label_visibility='visible', placeholder='input your new option',disabled = (maintenance_type!="add a new option"), key='type_new')
+            #     area = new_option if area=="add a new option" else area
 
 
-            issue = st.selectbox(
-            "which issue?",
-            options=location_issue[location],
-            # index=None,
-            placeholder="Select issue",
-            disabled=disable,key='issue'
-            )
-
-            maintenance_type = st.selectbox(
-            "what maintenance requied?",
-            options=issue_maintenance_type[issue],
-            index=0,
-            placeholder="Select issue",
-            disabled=disable,key='maintenance_type'
-            )
-
-            # Every form must have a submit button.
+    ######## add issue description ###########################
             issue_str = is_maintenance+'/'+area+'/'+location+'/'+issue+'/'+maintenance_type
-            if is_maintenance=='yes': 
-                submitted = st.button("➕ Add issue",on_click=add_issue, args=(issue_str,))  
 
-        #### showing issues###############
+            submitted = st.button("➕ Add issue", on_click=add_issue, args=(issue_str,),disabled=disable)  
+
+    ######## showing issues###############################################
+        st.sidebar.divider()
         for i in range(len(st.session_state.issue_list)):
             c1, c2 = st.sidebar.columns([0.3,0.7], gap='small')    
             if is_maintenance=='yes':        
@@ -207,7 +252,6 @@ def run():
                     st.session_state.deletes.append(st.button("❌", key=f"delete{i}", on_click=delete_field, args=(i,)))
         # st.write(issue_list)
         print ('st.session_state.issue_list',st.session_state.issue_list)
-        # print ('st.session_state.issue_size',st.session_state.issue_size)
 
     ###### submit button##################################################################
          
@@ -216,11 +260,9 @@ def run():
             st.session_state.area = 'unclear'
             st.session_state.location = 'unclear'
             st.session_state.issue = 'unclear'
-            st.session_state.maintenance_type = 'unclear'            
-            st.session_state.issue_size = 0
+            st.session_state.maintenance_type = 'unclear'     
             st.session_state.issue_list = []
             st.session_state.deletes = []
-        print (st.session_state.maintenance_type)
 
         st.sidebar.divider()
         submit = st.sidebar.button(label="Final submit",on_click=reset)    
@@ -235,42 +277,12 @@ def run():
         st.sidebar.write("Please do not forget to submit your results before annotating next one",submit)
 ##########################################################################################################################################################
 ##########################################################################################################################################################
-# test section
 
-        # def add_field():
-        #     st.session_state.fields_size += 1
-
-        # def delete_field(index):
-        #     st.session_state.fields_size -= 1
-        #     del st.session_state.fields[index]
-        #     del st.session_state.deletes[index]
-
-        # # st.header("Dynamic form ⚒️")
-        # # st.divider()
-
-        # if "fields_size" not in st.session_state:
-        #     st.session_state.fields_size = 0
-        #     st.session_state.fields = []
-        #     st.session_state.deletes = []
-
-        # # fields and types of the table
-        # for i in range(st.session_state.fields_size):
-        #     c1, c2 = st.columns(2)
-        #     with c1:
-        #         st.session_state.fields.append(st.text_input(f"Field {i}", key=f"text{i}"))
-
-        #     with c2:
-        #         st.session_state.deletes.append(st.button("❌", key=f"delete{i}", on_click=delete_field, args=(i,)))
-
-        # st.button("➕ Add field", on_click=add_field)
-        
-        
-        
 
 if __name__ == "__main__":
     run()
 
-
+############################################################################################################################
 # Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -285,19 +297,22 @@ if __name__ == "__main__":
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+# from typing import Any
 
-import numpy as np
+# import numpy as np
 
-import streamlit as st
-st.write("## Welcome to PIA email categorization!")
-st.markdown(
-    """
-    Please follow the below steps:
-    1. read the text body
-    2. answer the questions in all selectboxs on the left sidebar. 
-        - if a selectbox does not have option matching the text, please email the new option to shuming.liang@uts.eud.au. We will add the new option to that selectbox.
-    3. after completed all answers, please click the submit button to save your answer.
+# import streamlit as st
+# st.write("## Welcome to PIA email categorization!")
+# st.markdown(
+#     """
+#     Please follow the below steps:
+#     1. read the text body
+#     2. answer the questions in all selectboxs on the left sidebar. 
+#         - if a selectbox does not have option matching the text, please email the new option to shuming.liang@uts.eud.au. We will add the new option to that selectbox.
+#     3. after completed all answers, please click the submit button to save your answer.
 
-"""
-)
+# """
+# )
+############################################################################################################################
+
+############################################################################
