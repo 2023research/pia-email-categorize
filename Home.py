@@ -16,6 +16,8 @@ import os, psycopg2
 import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
+import streamlit.components.v1 as components
+from streamlit_modal import Modal
 from streamlit.logger import get_logger
 
 
@@ -213,6 +215,16 @@ else:
     for ele in [is_maintenance,area,location,issue,maintenance_type,subtype]:        
         issue_str=issue_str+ele+'/' if ele !=None else issue_str+'None/'
     print (issue_str)
+
+    ### add button ###########
+
+    my_modal = Modal(title='', key='add_newopt_key',padding=0,max_width=600,)
+    if 'confirm' not in st.session_state:
+        st.session_state.confirm = False
+    def del_btn_click():       
+        st.session_state.confirm = True
+
+
     bool_addissue = disable
     if  "add a new option" in [st.session_state.area, st.session_state.location, st.session_state.issue,
                                st.session_state.maintenance_type, st.session_state.subtype]:
@@ -222,17 +234,35 @@ else:
     with c1:
         add_issue_res = st.button("➕ Add issue", on_click=add_issue, args=(issue_str,),disabled=bool_addissue, key='add_issue')  
     with c2:
-        add_new_options_res = st.button("➕ Add new option", on_click=add_issue, disabled=bool_addopt, key='add_new_options')
+        add_new_options_res = st.button("➕ Add new option", disabled=bool_addopt, key='add_new_options')
+        if add_new_options_res:
+            with my_modal.container():
+                html_string = f'''
+                <h3><center>Your new maintenance description is</center></h3>
+                <h2><center>{issue_str}</center></h2>
+                <p><center>Please confirm to save it as an new option into the system. This new option will be shown in the left slectobx.</center></p>
+                
+                <script language="javascript">
+                document.querySelector("h2").style.color = "red";
+                </script>
+                '''
+                components.html(html_string)
+                st.markdown("""
+                <style>
+                div.stButton {text-align:center}
+                </style>""", unsafe_allow_html=True)
+                
+                st.button('Confirm to save it (red) to system',key='add_newopt_confirm_key')
 
 ######## showing issues###############################################
     st.sidebar.divider()
     for i in range(len(st.session_state.issue_list)):
-        c1, c2 = st.sidebar.columns([0.3,0.7], gap='small')    
-        if is_maintenance=='yes':        
-            with c2:
-                st.write(st.session_state.issue_list[i])
+        c1, c2 = st.sidebar.columns([0.2,0.8], gap='small')    
+        if is_maintenance=='yes':                    
             with c1:
                 st.session_state.deletes.append(st.button("❌", key=f"delete{i}", on_click=delete_field, args=(i,)))
+            with c2:
+                st.write(st.session_state.issue_list[i])
     # st.write(issue_list)
     print ('st.session_state.issue_list',st.session_state.issue_list)
 
@@ -249,6 +279,10 @@ else:
         st.session_state.deletes = []
 
     st.sidebar.divider()
+    st.markdown("""
+            <style>
+            div.stButton {text-align:center}
+            </style>""", unsafe_allow_html=True)
     submit = st.sidebar.button(label="Final submit",on_click=reset)    
     
     if submit:            
