@@ -66,7 +66,7 @@ location_issue={
     'unclear':['unclear','light','rubbish','general'],    
 }
 
-issue_maintenance_type = {
+issue_maintype = {
     'unclear':['unclear','handyman'],
     'crack':['unclear','gyprock'],
     'paint': ['unclear','painting'],
@@ -81,7 +81,7 @@ def read_email(sample=False):
     files = [f[:-4] for f in os.listdir(path_results)] 
     @st.cache_data
     def get_email_data():
-        df = pd.read_csv('./data/b14.csv')
+        df = pd.read_csv('./data/b00.csv',sep=',')
         print('######################')
         return df   
     try:
@@ -143,7 +143,7 @@ else:
     #     page_title="Hello",
     #     page_icon="👋",
     # )    
-    col1, col2 = st.sidebar.columns([1, 1,])
+    col1, col2,col3 = st.columns([0.4,0.3,0.3])
     with col1:
         st.subheader(f'Welcome {name}')
     with col2:
@@ -173,18 +173,18 @@ else:
         del st.session_state.deletes[index]
     def reset_no():
         if st.session_state.is_maintenance == 'no':
-            st.session_state.area = 'unclear'
-            st.session_state.location = 'unclear'
-            st.session_state.issue = 'unclear'
-            st.session_state.maintenance_type = 'unclear'
-            st.session_state.subtype = None   
+            st.session_state.key_area = 'unclear'
+            st.session_state.key_location = 'unclear'
+            st.session_state.key_issue = 'unclear'
+            st.session_state.key_maintype = 'unclear'
+            st.session_state.key_subtype = None   
 
     if "issue_list" not in st.session_state:
         st.session_state.issue_list = []
         st.session_state.deletes = []
     
     
-    st.sidebar.divider()
+    # st.sidebar.divider()
     is_maintenance = st.sidebar.selectbox( "Is it related to the property maintenance?", ("no","yes"), 
                                             placeholder="Select yes or no...", key='is_maintenance',on_change =reset_no)   
     disable = False if is_maintenance=='yes'else True
@@ -201,33 +201,30 @@ else:
             item = new_option if item=="add a new option" else item 
         return item 
     
-    area = select_issues("which room or area has issue?",['unclear',"bedroom", "living room"],disable=disable,key=['area','area_new'])
-    location = select_issues("what has issue?",['unclear',"ceiling", "pool"],disable=disable,key=['location','location_new'])
-    issue = select_issues("which issue?",location_issue[location],disable=disable,key=['issue','issue_new'])
-    maintenance_type = select_issues("what maintenance requied?",issue_maintenance_type[issue],disable=disable,key=['maintenance_type','type_new'])
-    subtype = select_issues("more maintenance requied?",issue_maintenance_type[issue],idx=None,disable=disable,key=['subtype','subtype_new'])
-    print ('st.session_state.area',st.session_state.area)
+    area = select_issues("which room or area has issue?",['unclear',"bedroom", "living room"],disable=disable,key=['key_area','key_area_new'])
+    location = select_issues("what has issue?",['unclear',"ceiling", "pool"],disable=disable,key=['key_location','key_location_new'])
+    issue = select_issues("which issue?",location_issue[location],disable=disable,key=['key_issue','key_issue_new'])
+    maintype = select_issues("what maintenance requied?",issue_maintype[issue],disable=disable,key=['key_maintype','key_maintype_new'])
+    subtype = select_issues("more maintenance requied?",issue_maintype[issue],idx=None,disable=disable,key=['key_subtype','key_subtype_new'])
+    print ('st.session_state.key_area',st.session_state.key_area)
 
     
 
 ######## add issue description ###########################
+    opt_long_checklist=[]
     issue_str=""
-    for ele in [is_maintenance,area,location,issue,maintenance_type,subtype]:        
+    for ele in [is_maintenance,area,location,issue,maintype,subtype]:  
+        if ele !=None:
+            if len(ele)>20:
+                opt_long_checklist.append(ele)
         issue_str=issue_str+ele+'/' if ele !=None else issue_str+'None/'
     print (issue_str)
 
-    ### add button ###########
-
-    my_modal = Modal(title='', key='add_newopt_key',padding=0,max_width=600,)
-    if 'confirm' not in st.session_state:
-        st.session_state.confirm = False
-    def del_btn_click():       
-        st.session_state.confirm = True
-
-
+    ### add issue button ##########
+    
     bool_addissue = disable
-    if  "add a new option" in [st.session_state.area, st.session_state.location, st.session_state.issue,
-                               st.session_state.maintenance_type, st.session_state.subtype]:
+    if  "add a new option" in [st.session_state.key_area, st.session_state.key_location, st.session_state.key_issue,
+                               st.session_state.key_maintype, st.session_state.key_subtype]:
         bool_addissue = True
     bool_addopt = (not bool_addissue) or (is_maintenance=='no') 
     c1, c2 = st.sidebar.columns([0.6,0.4], gap='small') 
@@ -235,24 +232,49 @@ else:
         add_issue_res = st.button("➕ Add issue", on_click=add_issue, args=(issue_str,),disabled=bool_addissue, key='add_issue')  
     with c2:
         add_new_options_res = st.button("➕ Add new option", disabled=bool_addopt, key='add_new_options')
+
+        my_modal = Modal(title='', key='key_add_newopt_modal',padding=0,max_width=600,)
+        if 'confirm' not in st.session_state:
+            st.session_state.confirm = False
+        def modal_save_newopt():       
+            st.session_state.confirm = True
+        # def modal_close():
+        #     my_modal.close()
+        print ('add_new_options_res',add_new_options_res)
         if add_new_options_res:
-            with my_modal.container():
-                html_string = f'''
-                <h3><center>Your new maintenance description is</center></h3>
-                <h2><center>{issue_str}</center></h2>
-                <p><center>Please confirm to save it as an new option into the system. This new option will be shown in the left slectobx.</center></p>
+            # st.error("Do you really, really, wanna do this?")
+            # if st.button("Yes I'm ready to rumble"):
+            #     st.button('Confirm to save it (red) to system',key='add_newopt_confirm_key')
+            if len(opt_long_checklist) > 0:
+                with my_modal.container():                
+                    # st.markdown(f'''Your new option :red[{opt_long_checklist}] is too long, please use short key words.''') 
+                    html_string = f'''
+                    <p><center>Your new option as below is too long, please use a short key-words.</center></p>
+                    <h3><center> {opt_long_checklist}</center></h3>               
+                    <script language="javascript">
+                    document.querySelector("h3").style.color = "red";
+                    </script>
+                    '''
+                    components.html(html_string)
+                    st.button('Back to re-edit it', key='key_add_newopt_revise')
+            else:
+                with my_modal.container():                
+                    html_string = f'''
+                    <p><center>Your new issue and maintenance description is</center></p>
+                    <h3><center>{issue_str}</center></h3>
+                    <p><center>Please confirm to save it as an new option into the system or back to edit it.</center></p>                
+                    <script language="javascript">
+                    document.querySelector("h3").style.color = "red";
+                    </script>
+                    '''
+                    components.html(html_string)
+                    # st.markdown('''
+                    # :red[Streamlit] :orange[can] :green[write] :blue[text] :violet[in]
+                    # :gray[pretty] :rainbow[colors].''') on_click= modal_close
+                    st.button('Back to re-edit it', key='key_add_newopt_revise')
+                    st.button('Confirm to save it to system',on_click=modal_save_newopt, key='key_add_newopt_confirm')
+
                 
-                <script language="javascript">
-                document.querySelector("h2").style.color = "red";
-                </script>
-                '''
-                components.html(html_string)
-                st.markdown("""
-                <style>
-                div.stButton {text-align:center}
-                </style>""", unsafe_allow_html=True)
-                
-                st.button('Confirm to save it (red) to system',key='add_newopt_confirm_key')
 
 ######## showing issues###############################################
     st.sidebar.divider()
@@ -271,10 +293,11 @@ else:
     
     def reset():
         st.session_state.is_maintenance = 'no'
-        st.session_state.area = 'unclear'
-        st.session_state.location = 'unclear'
-        st.session_state.issue = 'unclear'
-        st.session_state.maintenance_type = 'unclear'     
+        st.session_state.key_area = 'unclear'
+        st.session_state.key_location = 'unclear'
+        st.session_state.key_issue = 'unclear'
+        st.session_state.key_maintype = 'unclear'    
+        st.session_state.key_subtype = None 
         st.session_state.issue_list = []
         st.session_state.deletes = []
 
@@ -286,7 +309,7 @@ else:
     submit = st.sidebar.button(label="Final submit",on_click=reset)    
     
     if submit:            
-        df = pd.DataFrame([[id_email,is_maintenance,area,location,issue,maintenance_type]],columns=['id_email','is_maintenance','area','location','issue','maintenance_type'])
+        df = pd.DataFrame([[id_email,is_maintenance,area,location,issue,maintype]],columns=['id_email','is_maintenance','area','location','issue','maintype'])
         print (df)
         df.to_csv(os.path.join(path_results,id_email+'.csv'),index=False)
         st.rerun()
