@@ -6,3 +6,4 @@ streamlit
 streamlit-authenticator
 streamlit-modal
 psycopg2
+SQLAlchemy

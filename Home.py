@@ -20,6 +20,8 @@ import streamlit.components.v1 as components
 from streamlit_modal import Modal
 from streamlit.logger import get_logger
 
+from sqlalchemy import create_engine
+
 
 import yaml
 from yaml.loader import SafeLoader
@@ -34,10 +36,10 @@ st.set_page_config(layout="wide")
 @st.cache_resource
 def connect_db():
     conn = psycopg2.connect("dbname=pia host=piadb.c4j0rw3vec6q.ap-southeast-2.rds.amazonaws.com user=postgres password=UTS-DSI2020")
-    return conn.cursor()
+    return conn
 # create schema####
 def create_grant_schema(schema):
-    cur = connect_db()
+    cur = connect_db().cursor()
     print (cur)
     cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema} AUTHORIZATION postgres ")
     cur.execute(f"GRANT CREATE, USAGE ON SCHEMA {schema} TO postgres")
@@ -57,7 +59,7 @@ def create_table_issue():
         subsubsubtype varchar(150),
         note varchar(1500)
         )"""
-    cur = connect_db()
+    cur = connect_db().cursor()
     cur.execute(sql)
     cur.execute("COMMIT")
 # create_table_issue()
@@ -252,13 +254,15 @@ else:
     with c2:
         add_new_options_res = st.button("➕ Add new option", disabled=bool_addopt, key='add_new_options')
    
-    ### modal popup moduel#########################################################################################
+    ### modal popup moduel#########################################################################################    
+    engine = create_engine('postgresql://user@localhost:5432/mydb')
+    print (pd.read_sql('select * from email.issues', con=connect_db()))
     with st.sidebar:
         def modal_save_newopt():  
             values = [(area,location,issue,maintype,subtype,name)]
             sql = """INSERT INTO email.issues (area, location, issue, maintype, subtype, note) VALUES (%s,%s,%s,%s,%s,%s)"""
             print (sql)                 
-            cur = connect_db()
+            cur = connect_db().cursor()
             try:
                 cur.executemany(sql,values)
             except:
