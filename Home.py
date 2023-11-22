@@ -21,6 +21,7 @@ from streamlit_modal import Modal
 from streamlit.logger import get_logger
 
 from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 
 
 import yaml
@@ -33,6 +34,10 @@ path_results = './results'
 st.set_page_config(layout="wide")
 #############################################################################################
 # database
+@st.cache_resource
+def sqlalchemy_engine():
+    engine = create_engine('postgresql://postgres:UTS-DSI2020@piadb.c4j0rw3vec6q.ap-southeast-2.rds.amazonaws.com/pia')
+    return engine
 @st.cache_resource
 def connect_db():
     conn = psycopg2.connect("dbname=pia host=piadb.c4j0rw3vec6q.ap-southeast-2.rds.amazonaws.com user=postgres password=UTS-DSI2020")
@@ -254,20 +259,32 @@ else:
     with c2:
         add_new_options_res = st.button("➕ Add new option", disabled=bool_addopt, key='add_new_options')
    
-    ### modal popup moduel#########################################################################################    
-    engine = create_engine('postgresql://user@localhost:5432/mydb')
-    print (pd.read_sql('select * from email.issues', con=connect_db()))
-    with st.sidebar:
-        def modal_save_newopt():  
-            values = [(area,location,issue,maintype,subtype,name)]
-            sql = """INSERT INTO email.issues (area, location, issue, maintype, subtype, note) VALUES (%s,%s,%s,%s,%s,%s)"""
-            print (sql)                 
-            cur = connect_db().cursor()
-            try:
-                cur.executemany(sql,values)
-            except:
-                cur.execute("rollback") 
-            cur.execute('commit')
+    ### modal popup moduel########################################################################################
+    # # dbname=pia host=piadb.c4j0rw3vec6q.ap-southeast-2.rds.amazonaws.com user=postgres password=UTS-DSI2020   
+    #postgresql+psycopg2://user:password@hostname/database_name'
+    
+    # print (pd.read_sql('select * from email.issues', con=sqlalchemy_engine()))
+    def modal_save_newopt_confirm():
+        st.session_state.bool_save_newopt=True
+    def modal_save_newopt(a=None):  
+        sql = f"""INSERT INTO email.issues (area, location, issue, maintype, subtype, note) VALUES ('{area}','{location}','{issue}','{maintype}','{subtype}','{name}')"""
+        # st method#################################
+        # conn = st.connection("postgresql", type="sql")
+        # Perform query.
+        # conn.session.execute(text(sql))
+        print (sql)                 
+        # cur method################################
+        cur = connect_db().cursor()
+        cur.execute(sql)
+        try:
+            cur.execute(sql)
+        except:
+            cur.execute("rollback") 
+        cur.execute('commit')
+    if 'bool_save_newopt' not in st.session_state:
+        st.session_state.bool_save_newopt=False
+
+    with st.sidebar:    
 
         my_modal = Modal(title='', key='key_add_newopt_modal',padding=0,max_width=800)      
         if add_new_options_res:
@@ -283,7 +300,25 @@ else:
                     st.markdown(f"<p style='text-align: center; '>Please save or re-edit it. Note that the saving will update the options in the system!</p>", unsafe_allow_html=True)
                     
                     st.button('Back to re-edit it', key='key_add_newopt_revise')
-                    st.button('Confirm to save it to system',on_click=modal_save_newopt, key='key_add_newopt_confirm')
+                    # st.button('Confirm to save it to system',on_click=modal_save_newopt, args=(1,), key='key_add_newopt_confirm')
+                    st.button('Confirm to save it to system',on_click=modal_save_newopt_confirm, key='key_add_newopt_confirm')
+
+    print ('st.session_state.bool_save_newopt',st.session_state.bool_save_newopt)
+    if st.session_state.bool_save_newopt:
+        sql = f"""INSERT INTO email.issues (area, location, issue, maintype, subtype, note) VALUES ('{area}','{location}','{issue}','{maintype}','{subtype}','{name}')"""
+        # st method#################################
+        # conn = st.connection("postgresql", type="sql")
+        # Perform query.
+        # conn.session.execute(text(sql))
+        print (sql)                 
+        # cur method################################
+        cur = connect_db().cursor()
+        cur.execute(sql)
+        try:
+            cur.execute(sql)
+        except:
+            cur.execute("rollback") 
+        st.session_state.bool_save_newopt=False
 
     ########################################################################################################################################################################
             
