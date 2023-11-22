@@ -27,8 +27,11 @@ from yaml.loader import SafeLoader
 #############################################################################################
 LOGGER = get_logger(__name__)
 path_results = './results'
+
+st.set_page_config(layout="wide")
 #############################################################################################
 # database
+@st.cache_resource
 def connect_db():
     conn = psycopg2.connect("dbname=pia host=piadb.c4j0rw3vec6q.ap-southeast-2.rds.amazonaws.com user=postgres password=UTS-DSI2020")
     return conn.cursor()
@@ -45,14 +48,14 @@ def create_grant_schema(schema):
 ## create table###############
 def create_table_issue():
     sql = """CREATE TABLE IF NOT EXISTS email.issues (
-        area varchar(1450) NOT NULL,
-        location varchar(1450) NOT NULL,
-        issue varchar(1450) NOT NULL,
-        maintype varchar(1450) NOT NULL,
-        subtype varchar(1450) NOT NULL,
-        subsubtype varchar(1450) NOT NULL,
-        subsubsubtype varchar(1450) NOT NULL,
-        note varchar(1450) NOT NULL
+        area varchar(150),
+        location varchar(150),
+        issue varchar(150),
+        maintype varchar(150),
+        subtype varchar(150),
+        subsubtype varchar(150),
+        subsubsubtype varchar(150),
+        note varchar(1500)
         )"""
     cur = connect_db()
     cur.execute(sql)
@@ -85,7 +88,6 @@ def read_email(sample=False):
         print('######################')
         return df   
     try:
-        # print (files)
         df = get_email_data()
         df = df[['Body','ID']]
         df_bool = df['ID'].apply(lambda x: x not in files)
@@ -142,20 +144,32 @@ else:
     # st.set_page_config(
     #     page_title="Hello",
     #     page_icon="👋",
-    # )    
-    col1, col2,col3 = st.columns([0.4,0.3,0.3])
-    with col1:
-        st.subheader(f'Welcome {name}')
-    with col2:
-        authenticator.logout('Logout')
+    # )   
+   
+    st.markdown(f"<h2 style='text-align: center; color: red;'>Welcome {name}!</h2>", unsafe_allow_html=True)
+    authenticator.logout('Logout')
+    # col1, col2,col3 = st.columns([0.1,0.5,0.15])
+    # with col2:
+    #     # st.markdown(f'''Welcome :green[{name}]!''') #mlit] :orange[can] :green[write] :blue[text] :violet[in]
+    #     st.subheader(f'Welcome {name}!')
+    # with col1:
+    # with col1:
+    #     st.subheader(f'Wecome {name}')
     # st.sidebar.divider()
 #########body######################################################################################
-    # body
-    
-    
+    st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 800px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+    )
 
 
-#####load email #########################
+#####  load email #########################
     text_email,id_email = read_email()
     print (id_email)    
     st.header('Text to analyze', divider='red')
@@ -163,7 +177,7 @@ else:
     st.header(body='',divider='red' )
     st.header('End')
 
-#### add issue ###############################   
+###### add issue ###############################   
     def add_issue(issue_str=None):
         if issue_str !=None and issue_str not in st.session_state.issue_list:
             st.session_state.issue_list.append(issue_str)
@@ -178,6 +192,7 @@ else:
             st.session_state.key_issue = 'unclear'
             st.session_state.key_maintype = 'unclear'
             st.session_state.key_subtype = None   
+            st.session_state.key_area_new=None
 
     if "issue_list" not in st.session_state:
         st.session_state.issue_list = []
@@ -211,13 +226,17 @@ else:
     
 
 ######## add issue description ###########################
+    issue_str_list = [is_maintenance,area,location,issue,maintype,subtype]
     opt_long_checklist=[]
     issue_str=""
-    for ele in [is_maintenance,area,location,issue,maintype,subtype]:  
+    for i, ele in enumerate(issue_str_list):  
         if ele !=None:
             if len(ele)>20:
                 opt_long_checklist.append(ele)
-        issue_str=issue_str+ele+'/' if ele !=None else issue_str+'None/'
+        if i<len(issue_str_list)-1:
+            issue_str=issue_str+ele+'/' if ele !=None else issue_str+'None/'
+        else:
+            issue_str=issue_str+ele if ele !=None else issue_str+'None'
     print (issue_str)
 
     ### add issue button ##########
@@ -232,49 +251,38 @@ else:
         add_issue_res = st.button("➕ Add issue", on_click=add_issue, args=(issue_str,),disabled=bool_addissue, key='add_issue')  
     with c2:
         add_new_options_res = st.button("➕ Add new option", disabled=bool_addopt, key='add_new_options')
+   
+    ### modal popup moduel#########################################################################################
+    with st.sidebar:
+        def modal_save_newopt():  
+            values = [(area,location,issue,maintype,subtype,name)]
+            sql = """INSERT INTO email.issues (area, location, issue, maintype, subtype, note) VALUES (%s,%s,%s,%s,%s,%s)"""
+            print (sql)                 
+            cur = connect_db()
+            try:
+                cur.executemany(sql,values)
+            except:
+                cur.execute("rollback") 
+            cur.execute('commit')
 
-        my_modal = Modal(title='', key='key_add_newopt_modal',padding=0,max_width=600,)
-        if 'confirm' not in st.session_state:
-            st.session_state.confirm = False
-        def modal_save_newopt():       
-            st.session_state.confirm = True
-        # def modal_close():
-        #     my_modal.close()
-        print ('add_new_options_res',add_new_options_res)
+        my_modal = Modal(title='', key='key_add_newopt_modal',padding=0,max_width=800)      
         if add_new_options_res:
-            # st.error("Do you really, really, wanna do this?")
-            # if st.button("Yes I'm ready to rumble"):
-            #     st.button('Confirm to save it (red) to system',key='add_newopt_confirm_key')
             if len(opt_long_checklist) > 0:
-                with my_modal.container():                
-                    # st.markdown(f'''Your new option :red[{opt_long_checklist}] is too long, please use short key words.''') 
-                    html_string = f'''
-                    <p><center>Your new option as below is too long, please use a short key-words.</center></p>
-                    <h3><center> {opt_long_checklist}</center></h3>               
-                    <script language="javascript">
-                    document.querySelector("h3").style.color = "red";
-                    </script>
-                    '''
-                    components.html(html_string)
+                with my_modal.container(): 
+                    st.markdown(f"<p style='text-align: center; '>Your new option as below is too long, please use a short key-words.</p>", unsafe_allow_html=True)
+                    st.markdown(f"<h3 style='text-align: center; color: red;'>{opt_long_checklist}</h3>", unsafe_allow_html=True)
                     st.button('Back to re-edit it', key='key_add_newopt_revise')
             else:
-                with my_modal.container():                
-                    html_string = f'''
-                    <p><center>Your new issue and maintenance description is</center></p>
-                    <h3><center>{issue_str}</center></h3>
-                    <p><center>Please confirm to save it as an new option into the system or back to edit it.</center></p>                
-                    <script language="javascript">
-                    document.querySelector("h3").style.color = "red";
-                    </script>
-                    '''
-                    components.html(html_string)
-                    # st.markdown('''
-                    # :red[Streamlit] :orange[can] :green[write] :blue[text] :violet[in]
-                    # :gray[pretty] :rainbow[colors].''') on_click= modal_close
+                with my_modal.container(): 
+                    st.markdown(f"<p style='text-align: center; '>Your new maintenance description is:</p>", unsafe_allow_html=True)
+                    st.markdown(f"<h3 style='text-align: center; color: red;'>{issue_str.split('/')[:]}</h3>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='text-align: center; '>Please save or re-edit it. Note that the saving will update the options in the system!</p>", unsafe_allow_html=True)
+                    
                     st.button('Back to re-edit it', key='key_add_newopt_revise')
                     st.button('Confirm to save it to system',on_click=modal_save_newopt, key='key_add_newopt_confirm')
 
-                
+    ########################################################################################################################################################################
+            
 
 ######## showing issues###############################################
     st.sidebar.divider()
@@ -304,7 +312,7 @@ else:
     st.sidebar.divider()
     st.markdown("""
             <style>
-            div.stButton {text-align:center}
+            div.stButton {text-align:center; color: blue;}
             </style>""", unsafe_allow_html=True)
     submit = st.sidebar.button(label="Final submit",on_click=reset)    
     
@@ -319,41 +327,6 @@ else:
 ##########################################################################################################################################################
 ##########################################################################################################################################################
 
-
 # if __name__ == "__main__":
 #     run()
 
-############################################################################################################################
-# Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# from typing import Any
-
-# import numpy as np
-
-# import streamlit as st
-# st.write("## Welcome to PIA email categorization!")
-# st.markdown(
-#     """
-#     Please follow the below steps:
-#     1. read the text body
-#     2. answer the questions in all selectboxs on the left sidebar. 
-#         - if a selectbox does not have option matching the text, please email the new option to shuming.liang@uts.eud.au. We will add the new option to that selectbox.
-#     3. after completed all answers, please click the submit button to save your answer.
-
-# """
-# )
-############################################################################################################################
-
-############################################################################
